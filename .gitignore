@@ -1,0 +1,33 @@
+node_modules/
+dist/
+build/
+.cache/
+.env
+.env.*
+*.log
+*.tmp
+.DS_Store
+
+# Media
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.webm
+*.m4v
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.webp
+
+# Archives
+*.zip
+*.tar.gz
+*.7z
+
+# macOS
+*.app
+
+# Uploads
+uploads/

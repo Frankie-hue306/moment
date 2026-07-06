@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="此刻">
+<meta name="theme-color" content="#1C1C1E">
+<link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPScxODAnIGhlaWdodD0nMTgwJyB2aWV3Qm94PScwIDAgMTgwIDE4MCc+CiAgPHJlY3Qgd2lkdGg9JzE4MCcgaGVpZ2h0PScxODAnIHJ4PSc0MCcgZmlsbD0nIzBhODRmZicvPgogIDx0ZXh0IHg9JzkwJyB5PScxMTAnIHRleHQtYW5jaG9yPSdtaWRkbGUnIGZvbnQtc2l6ZT0nODAnPvCfk7g8L3RleHQ+Cjwvc3ZnPg==">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no,viewport-fit=cover">
+<title>此刻 v304</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#1c1c1e;--card:#2c2c2e;--text:#f5f5f7;--muted:#98989d;--accent:#D4A373;--sep:rgba(84,84,88,.65);--nav-bg:rgba(28,28,30,.85);--nav-border:rgba(255,255,255,.06);--menu-bg:#1c1c1e;--menu-sep:rgba(255,255,255,.06);--overlay-alpha:rgba(0,0,0,.55);--tab-bg:#1c1c1e;--sheet-bg:#2c2c2e;--overlay-bg:rgba(0,0,0,.85);--world-bg:#0B0E1A}
+body{font-family:-apple-system,'SF Pro Display','PingFang SC',sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden;display:flex;justify-content:center;-webkit-font-smoothing:antialiased;overscroll-behavior:none}html.starry-on body{background:transparent !important}html.starry-on .app{background:transparent !important}
+.app{width:100%;display:flex;flex-direction:column;min-height:100vh}
+
+.btn{
+  display:block;width:100%;padding:18px;border:none;
+  background:var(--card);color:var(--text);font-size:17px;font-weight:400;
+  letter-spacing:-.4px;cursor:pointer;border-radius:14px;margin-bottom:10px;
+  text-align:left;transition:all .15s;
+  -webkit-tap-highlight-color:transparent;
+}
+.btn:active{background:#2c2c2e;transform:scale(.97)}
+.btn .icon{margin-right:12px;font-size:20px}
+img.pv{max-width:90vw;max-height:50vh;object-fit:contain;background:var(--card);border-radius:12px;margin:20px auto;display:block}
+.ti{
+  width:100%;padding:14px 16px;border:none;border-radius:12px;
+  background:var(--card);color:var(--text);font-size:17px;text-align:left;
+  outline:none;margin:0 auto;display:block;letter-spacing:-.3px
+}
+.ti:focus{background:#2c2c2e}
+.ti::placeholder{color:var(--muted)}
+@keyframes br{0%,100%{transform:scale(1)}50%{transform:scale(1.03)}}
+@keyframes tilt{0%,100%{transform:perspective(800px) rotateY(-5deg) rotateX(1deg) scale(.97)}25%{transform:perspective(800px) rotateY(0deg) rotateX(0deg) scale(1)}50%{transform:perspective(800px) rotateY(5deg) rotateX(-1deg) scale(.97)}75%{transform:perspective(800px) rotateY(0deg) rotateX(0deg) scale(1)}}
+.depth3d{
+  animation:tilt 4s ease-in-out infinite;
+  box-shadow:0 30px 80px rgba(0,0,0,.6),0 0 0 5px rgba(255,255,255,.1),0 0 30px rgba(255,107,53,.08) !important;
+  border-radius:20px !important;
+  position:relative;
+  transform-style:preserve-3d;
+}
+.depth3d::after{
+  content:'';position:absolute;top:0;left:0;right:0;bottom:0;
+  background:radial-gradient(ellipse at center,transparent 40%,rgba(0,0,0,.5) 100%);
+  pointer-events:none;border-radius:inherit;
+}
+.depth-btn{background:var(--accent) !important;color:#fff !important;text-align:center !important}
+/* New layout styles */
+.topbar{position:sticky;top:0;z-index:200}
+.bottom-nav{position:sticky;bottom:0;z-index:100}
+/* Starry mode: make bars transparent via CSS so there is no black bar flash before JS runs */
+html.starry-on .topbar{background:transparent !important;backdrop-filter:none !important;-webkit-backdrop-filter:none !important;border-bottom:none !important}
+html.starry-on .bottom-nav{background:transparent !important;backdrop-filter:none !important;-webkit-backdrop-filter:none !important;border-top:none !important}
+html.starry-on [id^=tab-]{background:transparent !important}
+.nav-item{opacity:.4;transition:all .2s;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 0;position:relative}
+.nav-item.active{opacity:1}
+.nav-item .nav-icon{font-size:24px;width:24px;height:24px;line-height:24px;text-align:center;transition:transform .2s}
+.nav-item.active .nav-icon{transform:scale(1.15);color:var(--accent)}
+.nav-item.active .nav-label{font-weight:700;color:var(--accent)}
+.nav-item .nav-label{font-size:10px;letter-spacing:-.2px}
+.nav-item:active .nav-icon{transform:scale(.9)}
+/* Shoot button - Glassmorphism */
+.btn-shoot-wrap{position:relative;width:160px;height:160px;display:flex;align-items:center;justify-content:center}
+.btn-shoot-glow{position:absolute;top:-10px;left:-10px;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,rgba(167,139,250,.15),transparent 70%);animation:glowBreathe 2s ease-in-out infinite;pointer-events:none;z-index:0}
+.btn-shoot-ring{position:absolute;top:-6px;left:-6px;width:172px;height:172px;transform:rotate(-90deg);pointer-events:none;z-index:3}
+.btn-shoot-ring circle{fill:none;stroke:rgba(255,255,255,.8);stroke-width:2.5;stroke-linecap:round;transition:stroke-dashoffset .3s linear}
+@keyframes glowBreathe{0%,100%{opacity:.5;transform:scale(1)}50%{opacity:1;transform:scale(1.05)}}
+#mainActionBtn{
+  width:160px;height:160px;border-radius:50%;border:1px solid rgba(255,255,255,.25);
+  background:rgba(255,255,255,.15);color:#fff;font-size:17px;font-weight:700;
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  letter-spacing:0px;cursor:pointer;
+  box-shadow:0 4px 8px rgba(0,0,0,.1),0 0 0 1px rgba(255,255,255,.05) inset;
+  transition:all .25s;display:flex;align-items:center;justify-content:center;text-align:center;
+  line-height:1.4;-webkit-tap-highlight-color:transparent;position:relative;z-index:2;
+}
+#mainActionBtn:active{transform:scale(.96);background:rgba(255,255,255,.25)}
+#mainActionBtn.taken{background:rgba(212,163,115,.25);color:#fff;font-size:14px;border-color:rgba(212,163,115,.35);box-shadow:0 4px 20px rgba(212,163,115,.2),0 4px 8px rgba(0,0,0,.1)}
+#mainActionBtn.taken:active{background:rgba(184,146,95,.3)}
+#sideMenu{
+  position:fixed;top:0;left:-280px;bottom:0;width:280px;background:var(--menu-bg);z-index:4000;
+  transition:transform .25s ease;overflow-y:auto;padding:calc(30px + env(safe-area-inset-top, 0px)) 20px calc(30px + env(safe-area-inset-bottom, 0px));
+  display:flex;flex-direction:column;
+}
+#sideMenu.open{transform:translateX(280px)}
+#quickSettings{
+  position:fixed;top:0;right:0;bottom:0;width:280px;background:var(--menu-bg);z-index:4000;
+  transition:transform .25s ease;overflow-y:auto;padding:calc(30px + env(safe-area-inset-top, 0px)) 20px calc(30px + env(safe-area-inset-bottom, 0px));
+  transform:translateX(280px);
+}
+#quickSettings.open{transform:translateX(0)}
+#menuOverlay{
+  position:fixed;top:0;left:0;right:0;bottom:0;background:var(--overlay-alpha);
+  z-index:3999;display:none;
+}
+.menu-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:16px 0;border-bottom:1px solid var(--menu-sep);
+  color:var(--text);font-size:16px;letter-spacing:-.3px;cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+}
+.menu-row:active{opacity:.7}
+.menu-row.danger{color:rgba(255,80,80,.8)}
+.menu-row .menu-arrow{color:var(--muted);font-size:14px}
+.section-title{color:var(--muted);font-size:12px;letter-spacing:1px;text-transform:uppercase;margin:24px 0 8px}
+.wf-card{break-inside:avoid;margin-bottom:8px;background-color:var(--card);border-radius:10px;overflow:hidden;cursor:pointer;-webkit-tap-highlight-color:transparent;min-height:150px;background-size:cover;background-position:center;box-shadow:var(--card-shadow,none)}
+.wf-card:active{opacity:.85}
+.wf-card img{width:100%;display:block;background:var(--card,#2c2c2e)}
+.wf-card .wf-info{padding:8px 10px}
+.wf-card .wf-time{font-size:11px;color:var(--muted)}
+.wf-card .wf-thought{font-size:13px;color:var(--text);overflow:hidden;text-overflow:ellipsis;margin-top:2px;line-height:1.3}
+/* Immersive breathing & ripple */
+@keyframes breathe{0%,100%{transform:translate(-50%,-50%) scale(1) rotate(var(--rz))}50%{transform:translate(-50%,calc(-50% - 3px)) scale(1) rotate(calc(var(--rz) + 1deg))}}
+@keyframes ripple{0%{width:0;height:0;opacity:.4}100%{width:200px;height:200px;opacity:0}}
+.card-breathing{animation:breathe 4s ease-in-out infinite}
+/* Filmstrip scroll */
+@keyframes scroll-left{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+@keyframes scroll-right{0%{transform:translateX(-50%)}100%{transform:translateX(0)}}
+.film-track{display:flex;gap:14px;position:absolute;left:0;top:0;height:170px;will-change:transform;align-items:center}
+.film-track.left{animation:scroll-left 35s linear infinite}
+.film-track.right{animation:scroll-right 35s linear infinite}
+.film-photo{flex-shrink:0;width:160px;height:160px;border-radius:10px;overflow:hidden;box-shadow:var(--card-shadow,0 1px 2px rgba(0,0,0,.15));cursor:pointer;position:relative;transition:transform .2s ease;border:.5px solid var(--nav-border,rgba(255,255,255,.1));background:var(--card,#1a1a1d)}
+.film-photo:active{transform:scale(.97);opacity:.85}
+.film-photo img{width:100%;height:100%;display:block;object-fit:cover;border-radius:8px}
+.film-photo .film-label{position:absolute;bottom:0;left:0;right:0;padding:6px 8px;background:linear-gradient(transparent,rgba(0,0,0,.45));color:rgba(255,255,255,.75);font-size:10px;font-weight:500;letter-spacing:-.1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;gap:4px;align-items:center}
+.film-photo .film-time-label{color:var(--muted,#8E8E93);font-size:10px;flex-shrink:0;font-weight:400}
+/* Pulse dot */
+@keyframes pulse-dot{0%,100%{opacity:.2}50%{opacity:1}}
+
+.custom-dialog-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center}
+.custom-dialog{background:#2c2c2e;border-radius:14px;padding:24px 20px 20px;max-width:300px;width:80%;text-align:center;color:#f5f5f7}
+.custom-dialog p{font-size:16px;line-height:1.5;margin-bottom:20px;white-space:pre-wrap}
+.custom-dialog .btn-row{display:flex;gap:10px}
+.custom-dialog .btn-row button{flex:1;padding:12px;border:none;border-radius:10px;font-size:16px;cursor:pointer}
+.custom-dialog .btn-cancel{background:rgba(255,255,255,.1);color:#f5f5f7}
+.custom-dialog .btn-ok{background:#D4A373;color:#fff;font-weight:600}
+/* ====== Light Mode Sky System ====== */
+.world-stars[data-mode="light"]{background:linear-gradient(180deg,#3a87cc 0%,#418ed0 18%,#5aa6de 42%,#8fc8ef 68%,#bfe3f7 88%,#dcf0fb 100%);background-attachment:fixed}
+.world-stars[data-mode="light"]::before{display:none}
+.world-stars[data-mode="light"] canvas{display:none}
+.world-stars[data-mode="dawn"]{background:linear-gradient(180deg,#635075 0%,#7a5a84 18%,#a46e94 36%,#e06d76 56%,#f5826a 72%,#fc9361 86%,#ffc569 100%);background-attachment:fixed}
+.world-stars[data-mode="dawn"]::before{display:none}
+.world-stars[data-mode="dawn"] canvas{display:none}
+/* 1.5s crossfade between sky modes */
+.world-stars{transition:opacity 1.5s ease}
+.world-stars[data-mode="light"],.world-stars[data-mode="dawn"]{opacity:1}
+.world-stars:not([data-mode="light"]):not([data-mode="dawn"]) .sky-cloud{display:none}
+/* Drifting cloud overlays */
+.sky-cloud{position:absolute;pointer-events:none;z-index:1;will-change:transform}
+.sky-cloud .cloud-shape{position:absolute;background:radial-gradient(ellipse at 40% 35%,rgba(255,255,255,.55) 0%,rgba(255,255,255,.25) 50%,rgba(255,255,255,.05) 100%);border-radius:50%;filter:blur(3px)}
+.sky-cloud .cloud-shape.bs{background:radial-gradient(ellipse at 35% 30%,rgba(255,255,255,.65) 0%,rgba(255,255,255,.3) 50%,rgba(255,255,255,0) 100%);filter:blur(5px)}
+@keyframes cloudDrift1{0%{transform:translateX(-10vw)}100%{transform:translateX(110vw)}}
+@keyframes cloudDrift2{0%{transform:translateX(110vw)}100%{transform:translateX(-10vw)}}
+@keyframes cloudDrift3{0%{transform:translateX(-20vw)}100%{transform:translateX(120vw)}}
+/* 12 朵云分配到 3 种速度层，错开方向与时长，营造自然漂移 */
+.sky-cloud:nth-child(3n+1){animation:cloudDrift1 var(--cd,80s) linear infinite}
+.sky-cloud:nth-child(3n+2){animation:cloudDrift2 var(--cd,95s) linear infinite}
+.sky-cloud:nth-child(3n+3){animation:cloudDrift3 var(--cd,110s) linear infinite}
+.sky-cloud:nth-child(1){--cd:78s}.sky-cloud:nth-child(2){--cd:96s}.sky-cloud:nth-child(3){--cd:112s}
+.sky-cloud:nth-child(4){--cd:84s}.sky-cloud:nth-child(5){--cd:100s}.sky-cloud:nth-child(6){--cd:120s}
+.sky-cloud:nth-child(7){--cd:88s}.sky-cloud:nth-child(8){--cd:104s}.sky-cloud:nth-child(9){--cd:116s}
+.sky-cloud:nth-child(10){--cd:92s}.sky-cloud:nth-child(11){--cd:108s}.sky-cloud:nth-child(12){--cd:124s}
+/* Dawn: 紫蓝→玫红→金橙朝霞渐变叠加 + 粉橙染色云朵 */
+.world-stars[data-mode="dawn"]::before{display:block;background:linear-gradient(180deg,rgba(60,40,80,.35) 0%,rgba(140,50,90,.3) 30%,rgba(220,100,60,.25) 60%,rgba(255,180,100,.2) 100%);z-index:1}
+.world-stars[data-mode="dawn"] .sky-cloud .cloud-shape{background:radial-gradient(ellipse at 40% 35%,rgba(255,180,140,.45) 0%,rgba(255,150,100,.3) 40%,rgba(255,120,70,.1) 70%,rgba(255,80,40,0) 100%)}
+.world-stars[data-mode="dawn"] .sky-cloud .cloud-shape.bs{background:radial-gradient(ellipse at 35% 30%,rgba(255,200,160,.55) 0%,rgba(255,170,120,.35) 40%,rgba(255,140,80,.15) 70%,rgba(255,100,50,0) 100%)}
+/* Dawn 文字提亮 */
+html.dawn-sky .topbar span{color:#fff !important;text-shadow:0 1px 4px rgba(0,0,0,.35)}
+html.dawn-sky .topbar button{color:#fff !important;text-shadow:0 1px 4px rgba(0,0,0,.35)}
+html.dawn-sky #todayStatus,html.dawn-sky #reminderHint,html.dawn-sky #todayDate{color:rgba(255,255,255,.92) !important;text-shadow:0 1px 3px rgba(0,0,0,.3)}
+html.dawn-sky .nav-item .nav-label{color:rgba(255,255,255,.85) !important;text-shadow:0 1px 3px rgba(0,0,0,.3)}
+html.dawn-sky .nav-item.active .nav-label{color:#fff !important;font-weight:700}
+/* 此刻 Starry World Engine - v284 */
+/* ====== Starry World ====== */
+.world-stars{position:fixed;top:0;left:0;right:0;bottom:0;width:100vw;height:100vh;height:-webkit-fill-available;z-index:0;pointer-events:none;overflow:hidden}
+.world-stars::before{content:"";position:fixed;top:0;left:0;right:0;bottom:0;width:100vw;height:100vh;height:-webkit-fill-available;background:radial-gradient(ellipse at 30% 20%,rgba(20,40,80,.3) 0%,transparent 55%),radial-gradient(ellipse at 70% 60%,rgba(15,25,45,.2) 0%,transparent 50%),var(--world-bg);z-index:0;pointer-events:none}
+.star{position:fixed;background:#fff;border-radius:50%;z-index:1;animation:twinkle var(--d,3s) ease-in-out infinite;animation-delay:var(--delay,0s)}
+.star.tier-bright{box-shadow:0 0 3px 1px rgba(200,220,255,.8),0 0 8px 3px rgba(150,180,255,.4)}
+.star.tier-mid{box-shadow:0 0 1px rgba(200,220,255,.3)}
+.star.tier-dim{box-shadow:none}
+.star.dimmed{opacity:.15!important;transition:opacity .5s}
+@keyframes twinkle{0%,100%{opacity:var(--lo,.3)}50%{opacity:var(--hi,.9)}}
+.meteor{position:fixed;z-index:2;pointer-events:none;animation:meteor var(--mDur,.7s) linear forwards}
+.meteor::before{content:'';position:absolute;top:-3px;left:-3px;width:8px;height:8px;border-radius:50%;background:#fff;box-shadow:0 0 12px 4px rgba(255,255,255,.9),0 0 24px 8px rgba(200,210,255,.5);z-index:1}
+.meteor-trail{position:absolute;top:0;left:-100px;width:100px;height:2px;background:linear-gradient(270deg,rgba(255,255,255,.95) 0%,rgba(200,180,255,.5) 40%,rgba(167,139,250,.2) 70%,transparent 100%);border-radius:1px;filter:blur(.5px);transform-origin:right center}
+.meteor-trail::after{content:'';position:absolute;top:-3px;left:0;width:100%;height:8px;background:linear-gradient(270deg,rgba(255,255,255,.3) 0%,rgba(167,139,250,.1) 50%,transparent 100%);filter:blur(4px);border-radius:4px}
+@keyframes meteor{0%{transform:translate(0,0) rotate(var(--ang,135deg));opacity:1}15%{opacity:1}70%{opacity:.2}100%{transform:translate(var(--dx,500px),var(--dy,500px)) rotate(var(--ang,135deg));opacity:0}}
+.nebula{position:fixed;border-radius:50%;z-index:0;filter:blur(80px);animation:nebulaDrift var(--nd,75s) ease-in-out infinite alternate}
+@keyframes nebulaDrift{0%{transform:translate(0,0) scale(1)}100%{transform:translate(var(--nx,15px),var(--ny,20px)) scale(1.05)}}
+.star-sparkle{animation:sparkleFlash .3s ease-out forwards!important}
+@keyframes sparkleFlash{0%{opacity:1;transform:scale(1);box-shadow:0 0 4px 2px rgba(255,255,255,.9),0 0 16px 6px rgba(180,200,255,.6)}50%{opacity:1;transform:scale(2.5);box-shadow:0 0 6px 3px rgba(255,255,255,1),0 0 24px 10px rgba(200,220,255,.8)}100%{opacity:var(--lo,.3);transform:scale(1);box-shadow:0 0 0px 0px transparent}}
+.pulse-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#4CD964;margin-left:4px;vertical-align:middle;animation:pulse-dot 1s ease-in-out infinite}
+
+#mainActionBtn.taken.light-glass{background:rgba(59,158,220,.15);color:#1C2B36;border-color:rgba(59,158,220,.30)}
+#mainActionBtn.light-glass{color:#1C2B36;border-color:rgba(59,158,220,.30);background:rgba(255,255,255,.45);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 4px 16px rgba(60,158,220,.18)}
+#mainActionBtn.light-glass:active{background:rgba(59,158,220,.18)}
+
+
+</style>
+</head>
+<body>
+<!-- Overlays -->
+<div id="onboarding" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:2200;overflow:hidden">
+  <div id="onboard-track" style="display:flex;width:300%;height:100%;transition:transform .35s ease">
+    <div class="onboard-page" style="flex:1;background:linear-gradient(180deg,#FF9A56,#FFD6A5);display:flex;align-items:center;justify-content:center;flex-direction:column">
+      <div style="color:#fff;font-size:32px;font-weight:700;text-align:center;text-shadow:0 2px 8px rgba(0,0,0,.15)">这世界<br>这么多人</div>
+    </div>
+    <div class="onboard-page" style="flex:1;background:linear-gradient(180deg,#A0C4FF,#BDB2FF);display:flex;align-items:center;justify-content:center;flex-direction:column">
+      <div style="color:#fff;font-size:28px;font-weight:700;text-align:center;line-height:1.6;text-shadow:0 2px 8px rgba(0,0,0,.15);max-width:300px">总有那么一个瞬间<br>你会心动<br>你会留恋</div>
+    </div>
+    <div class="onboard-page" style="flex:1;background:linear-gradient(180deg,#CA9BF7,#F5B8D9);display:flex;align-items:center;justify-content:center;flex-direction:column;position:relative">
+      <div style="color:#fff;font-size:28px;font-weight:700;text-align:center;line-height:1.6;text-shadow:0 2px 8px rgba(0,0,0,.15);max-width:300px">欢迎来到「此刻」<br>记录真实<br>连接世界</div>
+      <button onclick="startApp()" style="position:absolute;bottom:80px;left:20%;right:20%;padding:16px;background:#D4A373;color:#fff;border:none;border-radius:12px;font-size:18px;font-weight:600;cursor:pointer;letter-spacing:1px">开始</button>
+    </div>
+  </div>
+  <div id="onboard-dots" style="position:absolute;bottom:40px;left:0;right:0;display:flex;justify-content:center;gap:10px">
+    <div class="onboard-dot active" style="width:10px;height:10px;border-radius:50%;background:#fff;opacity:1;transition:opacity .3s"></div>
+    <div class="onboard-dot" style="width:10px;height:10px;border-radius:50%;background:#fff;opacity:.4;transition:opacity .3s"></div>
+    <div class="onboard-dot" style="width:10px;height:10px;border-radius:50%;background:#fff;opacity:.4;transition:opacity .3s"></div>
+  </div>
+</div>
+<div id="loginScreen" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:var(--bg);z-index:2000;flex-direction:column;align-items:center;justify-content:center;padding:calc(40px + env(safe-area-inset-top, 0px)) 40px calc(40px + env(safe-area-inset-bottom, 0px))">
+  <div style="font-size:56px;margin-bottom:24px">📸</div>
+  <h1 style="color:var(--text);font-size:32px;font-weight:700;margin-bottom:12px;letter-spacing:-.5px">此刻</h1>
+  <div style="color:var(--muted);font-size:16px;line-height:1.6;text-align:center;max-width:260px;margin-bottom:40px;letter-spacing:-.2px">每天一次，随机时刻<br>拍下你面前真实的生活<br>反社交媒体档案</div>
+  <input id="loginPhone" type="tel" maxlength="11" placeholder="输入手机号" style="width:280px;padding:16px;border:none;border-radius:14px;background:var(--card);color:var(--text);font-size:20px;text-align:center;outline:none;letter-spacing:4px;margin-bottom:12px">
+  <div style="display:flex;gap:8px;width:280px;margin-bottom:12px">
+    <input id="loginCode" type="tel" maxlength="6" placeholder="验证码" style="width:160px;padding:14px 8px;border:none;border-radius:14px;background:var(--card);color:var(--text);font-size:18px;text-align:center;outline:none;letter-spacing:4px">
+    <button id="smsBtn" onclick="sendSMS()" style="flex-shrink:0;padding:14px 12px;border:none;border-radius:14px;background:var(--card);color:var(--accent);font-size:13px;cursor:pointer;white-space:nowrap">获取验证码</button>
+  </div>
+  <button class="btn" id="loginBtn" onclick="doLogin()" style="width:280px;text-align:center;background:var(--accent);color:#fff;font-size:17px">注册</button>
+  <button class="btn" onclick="skipLogin()" style="width:280px;text-align:center;background:transparent;color:var(--muted);font-size:15px;margin-top:8px">跳过，先体验</button>
+  <div id="loginMsg" style="color:#ff6b6b;font-size:13px;margin-top:16px"></div>
+</div>
+<!-- Side Menu -->
+<div id="menuOverlay" onclick="closeAllPanels()"></div>
+<div id="sideMenu">
+  <div id="sideMenuUser" style="margin-bottom:16px">
+    <div id="sideMenuLoginPrompt" style="font-size:17px;font-weight:600;color:var(--accent);cursor:pointer;letter-spacing:-.3px" onclick="showLogin();closeAllPanels()">登录同步数据 →</div>
+    <div id="sideMenuLoggedIn" style="display:none">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+        <div id="sideMenuAvatar" onclick="pickAvatar()" style="width:48px;height:48px;border-radius:50%;background:var(--card);display:flex;align-items:center;justify-content:center;font-size:22px;cursor:pointer;overflow:hidden;background-size:cover;background-position:center">👤</div>
+        <input type="file" id="avatarPicker" accept="image/*" style="display:none" onchange="gotAvatar(event)">
+        <div>
+          <div style="font-size:16px;font-weight:600;letter-spacing:-.3px;cursor:pointer" id="sideMenuNick" onclick="editNickname()" title="点击修改用户名"></div>
+          <div style="color:var(--muted);font-size:12px;margin-top:2px" id="sideMenuPhoneSmall"></div>
+        </div>
+      </div>
+      <div style="display:flex;gap:20px;color:var(--muted);font-size:13px" id="sideMenuStats"></div>
+    </div>
+  </div>
+  <div style="height:1px;background:var(--menu-sep);margin:8px 0 12px"></div>
+  <div class="menu-row" onclick="closeAllPanels();navTo('photos')">
+    <span>📁 我的日记</span><span class="menu-arrow">›</span>
+  </div>
+  <div class="menu-row" onclick="closeAllPanels();openTimeFragment()">
+    <span>✨ 时光碎片</span><span class="menu-arrow">›</span>
+  </div>
+  <div class="menu-row" onclick="toggleDailyPick()" style="border-bottom:none">
+    <span>📸 每日精选推送</span>
+    <span id="dailyPickState" style="color:var(--accent);font-size:13px">已开启</span>
+  </div>
+  <div style="flex:1"></div>
+  <div style="display:flex;gap:12px;padding:16px 0;border-bottom:none">
+    <span class="menu-row danger" onclick="doLogout()" style="flex:1;border-bottom:none;padding:0">退出登录</span>
+    <span style="color:#D63031;cursor:pointer;font-size:14px;white-space:nowrap" onclick="deleteAccount()">注销账号</span>
+  </div>
+</div>
+<!-- Settings Page -->
+<div id="quickSettings">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+    <span style="font-size:18px;font-weight:600;letter-spacing:-.3px">设置</span>
+    <span style="font-size:22px;cursor:pointer;color:var(--muted)" onclick="closeAllPanels()">✕</span>
+  </div>
+  <!-- Group 1: 通知 -->
+  <div style="margin-bottom:24px">
+    <div style="color:var(--muted);font-size:12px;letter-spacing:1px;margin-bottom:8px;padding-left:4px">通知</div>
+    <div class="menu-row" onclick="toggleNotify()">
+      <span>🔔 通知总开关</span>
+      <span id="notifyState" style="color:var(--muted);font-size:13px">已关闭</span>
+    </div>
+  </div>
+  <!-- Group 2: 隐私与安全 -->
+  <div style="margin-bottom:24px">
+    <div style="color:var(--muted);font-size:12px;letter-spacing:1px;margin-bottom:8px;padding-left:4px">隐私与安全</div>
+    <div class="menu-row" onclick="alert('请前往系统设置管理位置权限')">
+      <span>📍 位置权限</span><span class="menu-arrow">›</span>
+    </div>
+    <div class="menu-row" onclick="togglePhotoPublic()" style="border-bottom:none">
+      <span>🌐 照片默认公开</span>
+      <span id="photoPublicState" style="color:var(--muted);font-size:13px">已开启</span>
+    </div>
+  </div>
+  <!-- Group 3: 通用 -->
+  <div style="margin-bottom:24px">
+    <div style="color:var(--muted);font-size:12px;letter-spacing:1px;margin-bottom:8px;padding-left:4px">通用</div>
+    <div class="menu-row" onclick="openDarkModeSheet()">
+      <span>🌓 深色模式</span>
+      <span id="darkModeState" style="color:var(--muted);font-size:13px">跟随系统</span>
+    </div>
+    <div class="menu-row" onclick="toggleStarryWorld()">
+      <span>🌌 星空背景</span>
+      <span id="starryWorldState" style="color:var(--muted);font-size:13px">已关闭</span>
+    </div>
+    <div class="menu-row" onclick="toggleImageQuality()">
+      <span>📶 图片加载策略</span>
+      <span id="imgQualityState" style="color:var(--muted);font-size:13px">省流量</span>
+    </div>
+    <div class="menu-row" onclick="toggleImmersiveFX()">
+      <span>✨ 沉浸特效</span>
+      <span id="immersiveFXState" style="color:var(--accent);font-size:13px;flex-shrink:0;margin-left:8px">已开启</span>
+    </div>
+    <div class="menu-row" onclick="restoreBackup()">
+      <span>♻️ 恢复本地备份</span><span class="menu-arrow">›</span>
+    </div>
+    <div class="menu-row" onclick="doClearCache()" style="border-bottom:none">
+      <span>🗑️ 清除缓存</span><span class="menu-arrow">›</span>
+    </div>
+  </div>
+  <!-- Group 4: 支持 -->
+  <div style="margin-bottom:24px">
+    <div style="color:var(--muted);font-size:12px;letter-spacing:1px;margin-bottom:8px;padding-left:4px">支持</div>
+    <div class="menu-row" onclick="alert('常见问题：\n1. 如何删除照片？在日记中点照片进入详情，点击删除\n2. 如何切换模式？在探索页面左右滑动\n\n联系开发者：moment.app@163.com')">
+      <span>❓ 帮助与反馈</span><span class="menu-arrow">›</span>
+    </div>
+    <div class="menu-row" onclick="showAbout()">
+      <span>ℹ️ 关于我们</span><span class="menu-arrow">›</span>
+    </div>
+    <div class="menu-row" onclick="openLegalPage('terms')">
+      <span>📄 用户协议</span><span class="menu-arrow">›</span>
+    </div>
+    <div class="menu-row" onclick="openLegalPage('privacy')" style="border-bottom:none">
+      <span>🔒 隐私政策</span><span class="menu-arrow">›</span>
+    </div>
+  </div>
+  <!-- Group 5: 危险操作 -->
+  <div>
+    <div style="color:var(--muted);font-size:12px;letter-spacing:1px;margin-bottom:8px;padding-left:4px">危险操作</div>
+    <div class="menu-row danger" onclick="closeAllPanels();showClearConfirm()" style="border-bottom:none">
+      <span>清空全部记录</span>
+    </div>
+  </div>
+</div>
+
+<!-- Dark Mode Picker Sheet -->
+<div id="darkModeSheet" style="position:fixed;bottom:0;left:0;right:0;background:var(--sheet-bg);z-index:4100;border-radius:20px 20px 0 0;padding:0 0 calc(30px + env(safe-area-inset-bottom, 0px));transform:translateY(100%);transition:transform .3s ease">
+  <div style="text-align:center;padding:14px;color:var(--muted);font-size:13px;border-bottom:1px solid var(--menu-sep)">深色模式</div>
+  <div class="menu-row" onclick="setDarkMode('auto')" style="padding-left:20px;padding-right:20px">跟随系统 <span id="dm-check-auto" style="color:var(--accent);display:none">✓</span></div>
+  <div class="menu-row" onclick="setDarkMode('light')" style="padding-left:20px;padding-right:20px">浅色模式 <span id="dm-check-light" style="color:var(--accent);display:none">✓</span></div>
+  <div class="menu-row" onclick="setDarkMode('dark')" style="padding-left:20px;padding-right:20px;border-bottom:none">深色模式 <span id="dm-check-dark" style="color:var(--accent);display:none">✓</span></div>
+  <button class="btn" onclick="closeDarkModeSheet()" style="margin:12px 20px 0;text-align:center">取消</button>
+</div>
+
+<!-- Report Action Sheet -->
+<div id="reportSheet" style="position:fixed;bottom:0;left:0;right:0;background:var(--sheet-bg);z-index:4100;border-radius:20px 20px 0 0;padding:0 0 calc(30px + env(safe-area-inset-bottom, 0px));transform:translateY(100%);transition:transform .3s ease">
+  <div style="text-align:center;padding:14px;color:var(--muted);font-size:13px;border-bottom:1px solid var(--menu-sep);letter-spacing:-.2px">举报内容</div>
+  <div class="menu-row" onclick="submitReport('porn')" style="padding-left:20px;padding-right:20px">色情低俗</div>
+  <div class="menu-row" onclick="submitReport('violence')" style="padding-left:20px;padding-right:20px">暴力血腥</div>
+  <div class="menu-row" onclick="submitReport('harassment')" style="padding-left:20px;padding-right:20px">骚扰辱骂</div>
+  <div class="menu-row" onclick="submitReport('spam')" style="padding-left:20px;padding-right:20px">垃圾广告</div>
+  <div class="menu-row" onclick="submitReport('privacy')" style="padding-left:20px;padding-right:20px">隐私侵犯</div>
+  <div class="menu-row" onclick="submitReport('other')" style="padding-left:20px;padding-right:20px;border-bottom:none">其他</div>
+  <button class="btn" onclick="closeReportSheet()" style="margin:12px 20px 0;text-align:center">取消</button>
+</div>
+
+<!-- Mode Switch Action Sheet -->
+<div id="modeSheet" style="position:fixed;bottom:0;left:0;right:0;background:var(--sheet-bg);z-index:4100;border-radius:20px 20px 0 0;padding:0 0 calc(30px + env(safe-area-inset-bottom, 0px));transform:translateY(100%);transition:transform .3s ease">
+  <div style="text-align:center;padding:14px;color:var(--muted);font-size:13px;border-bottom:1px solid var(--menu-sep)">显示模式</div>
+  <div class="menu-row" onclick="switchMode('waterfall')" style="padding-left:20px;padding-right:20px">瀑布流 <span id="check-waterfall" style="color:var(--accent);display:none">✓</span></div>
+  <div class="menu-row" onclick="switchMode('immersive')" style="padding-left:20px;padding-right:20px;border-bottom:none">沉浸 <span id="check-immersive" style="color:var(--accent);display:none">✓</span></div>
+  <button class="btn" onclick="closeModeSheet()" style="margin:12px 20px 0;text-align:center">取消</button>
+</div>
+
+<!-- Starry World Background -->
+<div id="starryWorld" class="world-stars" style="display:none"><div class="sky-cloud" style="top:4vh;left:-5vw;width:50vw;height:20vw"><div class="cloud-shape bs" style="width:60%;height:60%;top:5%;left:5%"></div><div class="cloud-shape" style="width:48%;height:55%;top:28%;left:38%"></div><div class="cloud-shape" style="width:38%;height:48%;top:8%;left:52%"></div></div><div class="sky-cloud" style="top:2vh;left:42vw;width:44vw;height:18vw"><div class="cloud-shape bs" style="width:58%;height:62%;top:0;left:8%"></div><div class="cloud-shape" style="width:44%;height:50%;top:30%;left:42%"></div></div><div class="sky-cloud" style="top:14vh;left:18vw;width:30vw;height:13vw"><div class="cloud-shape bs" style="width:62%;height:64%;top:5%;left:6%"></div><div class="cloud-shape" style="width:42%;height:48%;top:28%;left:44%"></div></div><div class="sky-cloud" style="top:20vh;left:62vw;width:38vw;height:16vw"><div class="cloud-shape bs" style="width:56%;height:60%;top:3%;left:8%"></div><div class="cloud-shape" style="width:46%;height:52%;top:30%;left:40%"></div></div><div class="sky-cloud" style="top:30vh;left:-3vw;width:34vw;height:14vw"><div class="cloud-shape bs" style="width:60%;height:62%;top:4%;left:6%"></div><div class="cloud-shape" style="width:44%;height:50%;top:30%;left:42%"></div></div><div class="sky-cloud" style="top:36vh;left:40vw;width:42vw;height:17vw"><div class="cloud-shape bs" style="width:54%;height:58%;top:2%;left:10%"></div><div class="cloud-shape" style="width:46%;height:52%;top:28%;left:42%"></div><div class="cloud-shape" style="width:36%;height:44%;top:6%;left:56%"></div></div><div class="sky-cloud" style="top:46vh;left:14vw;width:28vw;height:12vw"><div class="cloud-shape bs" style="width:64%;height:64%;top:5%;left:5%"></div><div class="cloud-shape" style="width:42%;height:48%;top:30%;left:46%"></div></div><div class="sky-cloud" style="top:52vh;left:66vw;width:32vw;height:13vw"><div class="cloud-shape bs" style="width:60%;height:60%;top:4%;left:8%"></div><div class="cloud-shape" style="width:42%;height:48%;top:30%;left:44%"></div></div><div class="sky-cloud" style="top:62vh;left:2vw;width:38vw;height:15vw"><div class="cloud-shape bs" style="width:56%;height:58%;top:3%;left:8%"></div><div class="cloud-shape" style="width:46%;height:52%;top:30%;left:40%"></div></div><div class="sky-cloud" style="top:68vh;left:50vw;width:30vw;height:12vw"><div class="cloud-shape bs" style="width:60%;height:62%;top:5%;left:6%"></div><div class="cloud-shape" style="width:42%;height:48%;top:30%;left:44%"></div></div><div class="sky-cloud" style="top:78vh;left:24vw;width:34vw;height:13vw"><div class="cloud-shape bs" style="width:58%;height:60%;top:4%;left:8%"></div><div class="cloud-shape" style="width:44%;height:50%;top:30%;left:42%"></div></div><div class="sky-cloud" style="top:84vh;left:70vw;width:26vw;height:11vw"><div class="cloud-shape bs" style="width:62%;height:62%;top:5%;left:6%"></div></div></div>
+<!-- Main App -->
+<div class="app">
+  
+  <!-- Top Bar -->
+  <header class="topbar" style="display:flex;align-items:center;justify-content:space-between;padding:calc(12px + env(safe-area-inset-top, 0px)) 20px 12px;background:var(--nav-bg);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid var(--nav-border)">
+    <button onclick="openSideMenu()" style="font-size:22px;background:none;border:none;color:var(--text);padding:4px;cursor:pointer">☰</button>
+    <span style="font-size:17px;font-weight:600;letter-spacing:-.3px">此刻</span>
+    <button onclick="openQuickSettings()" style="font-size:20px;background:none;border:none;color:var(--text);padding:4px;cursor:pointer">⚙️</button>
+  </header>
+
+  <!-- Home Tab -->
+  <div id="tab-home" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:max(20px,env(safe-area-inset-top,0px)) 24px 40px;overflow:hidden;overscroll-behavior:none;touch-action:manipulation;position:relative">
+    <div id="todayStatus" style="font-size:15px;margin-bottom:20px;color:var(--muted);letter-spacing:-.2px;padding-top:env(safe-area-inset-top,0px)">🌍 今天还没记录</div>
+    <div class="btn-shoot-wrap">
+  <div class="btn-shoot-glow"></div>
+  <svg class="btn-shoot-ring" id="countdownRing" viewBox="0 0 172 172"><circle cx="86" cy="86" r="83" stroke-dasharray="521.5" stroke-dashoffset="0" opacity="0"/></svg>
+  <button id="mainActionBtn" onclick="mainAction()">拍下<br>此刻</button>
+</div>
+    <div style="margin-top:24px;text-align:center">
+      <div id="reminderHint" style="color:var(--muted);font-size:13px;margin-top:6px;letter-spacing:-.1px">今天还没有记录，拍下你的此刻吧</div>
+      <div id="todayDate" style="position:absolute;top:12px;right:16px;color:var(--muted);font-size:12px;letter-spacing:0px;opacity:.5"></div>
+    </div>
+    <input type="file" id="pkr" accept="image/*" capture="environment" style="display:none" onchange="gotPhoto(event)">
+  </div>
+
+  <!-- Photos/Gallery Tab -->
+  <div id="tab-photos" style="display:none;flex:1;overflow-y:auto;padding:16px 24px 60px;overscroll-behavior:none">
+    <div id="gr"></div>
+  </div>
+
+  <!-- Strangers Tab (Immersive / Filmstrip) -->
+  <div id="tab-strangers" style="display:none;flex:1;overflow:visible;background:var(--tab-bg)">
+    <!-- World Header -->
+    <div style="position:relative;padding:32px 16px 12px;text-align:center;z-index:10">
+      <div style="display:flex;align-items:center;justify-content:center;width:100%">
+        <span style="font-size:20px;font-weight:500;color:var(--muted);font-family:-apple-system,'SF Pro Display','PingFang SC',sans-serif;letter-spacing:4px">世界正在记录</span>
+        <span class="pulse-dot" style="margin-left:8px;flex-shrink:0"></span>
+      </div>
+    </div>
+    <!-- Film Rows -->
+    <div id="filmRow1" style="overflow:hidden;height:170px;position:relative;margin:14px 0" onmousedown="toggleFilmRow(this)" ontouchstart="toggleFilmRow(this)" data-paused="0"></div>
+    <div id="filmRow2" style="overflow:hidden;height:170px;position:relative;margin:14px 0" onmousedown="toggleFilmRow(this)" ontouchstart="toggleFilmRow(this)" data-paused="0"></div>
+    <div id="filmRow3" style="overflow:hidden;height:170px;position:relative;margin:14px 0" onmousedown="toggleFilmRow(this)" ontouchstart="toggleFilmRow(this)" data-paused="0"></div>
+    <!-- Bottom space -->
+    <div style="height:calc(env(safe-area-inset-bottom, 0px) + 70px);background:linear-gradient(180deg,transparent,var(--bg) 60%)"></div>
+  </div>
+
+  <!-- Strangers Tab (Waterfall) -->
+  <div id="tab-strangers-waterfall" style="display:none;flex:1;overflow-y:auto;padding:0;background:var(--tab-bg)">
+    <div style="position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;padding:12px 14px 8px;background:var(--nav-bg)">
+      <span></span>
+    </div>
+    <div style="padding:0 8px 60px">
+    <div id="wf-grid" style="column-count:2;column-gap:8px"></div>
+    <div id="wf-loading" style="display:none;text-align:center;padding:16px;color:var(--muted);font-size:12px">加载中...</div>
+    <div id="wf-end" style="display:none;text-align:center;padding:16px;color:var(--muted);font-size:11px">— 已经到底了 —</div>
+    <div id="wf-stats" style="text-align:center;padding:4px 0 8px;font-size:11px;color:var(--muted)"></div>
+  </div>
+  </div>
+  <div id="wf-backTop" onclick="scrollToTop()" style="display:none;position:fixed;bottom:100px;right:16px;width:44px;height:44px;background:var(--card);border:1px solid var(--nav-border);border-radius:50%;color:var(--text);font-size:20px;cursor:pointer;z-index:200;align-items:center;justify-content:center;box-shadow:var(--card-shadow);transition:opacity .2s">⬆</div>
+
+  <!-- Photo Zoom Overlay -->
+<div id="photoZoom" onclick="closeZoom()" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.95);z-index:6000;align-items:center;justify-content:center">
+  <img id="photoZoomImg" src="" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:4px" onclick="event.stopPropagation()">
+</div>
+
+<!-- Captured Screen (overlay) -->
+  <div id="captured" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:var(--bg);z-index:500;flex-direction:column;align-items:center;padding:calc(60px + env(safe-area-inset-top, 0px)) 24px calc(100px + env(safe-area-inset-bottom, 0px));overflow-y:auto">
+    <div id="capturedLabel" style="font-size:12px;color:#888;margin-bottom:8px">已记录</div>
+    <div id="countdownBadge" style="font-size:24px;font-weight:700;margin-bottom:12px;letter-spacing:1px">60s</div>
+    <img id="ph" class="pv" src="" alt="" onclick="event.stopPropagation();zoomPhoto()" style="cursor:pointer">
+    <div id="st" style="font-size:12px;color:rgba(237,237,239,.4);margin-bottom:16px"></div>
+    <div id="publishUI" style="width:100%">
+      <input class="ti" id="th" placeholder="此刻想说点什么？(20字)" maxlength="20" oninput="saveTh()">
+      <div style="font-size:10px;color:#555;margin-bottom:12px"><span id="cc">0</span>/20</div>
+      <div onclick="saveMoment()" style="display:block;width:100%;padding:18px;background:var(--accent);color:#fff;font-size:17px;border-radius:14px;cursor:pointer;margin-bottom:10px;text-align:center">📤 发布</div>
+      <button class="btn depth-btn" onclick="toggle3D()" id="btn3d" style="text-align:center">✨ 3D景深</button>
+    </div>
+    <div id="viewUI" style="display:none;width:100%">
+      <div id="viewText" style="color:var(--text);font-size:18px;margin-bottom:10px;padding:14px;background:var(--card);border-radius:12px;text-align:left;letter-spacing:-.3px;min-height:50px"></div>
+      <div id="viewDate" style="font-size:12px;color:var(--muted);margin-bottom:20px"></div>
+      <button class="btn depth-btn" onclick="toggle3D()" id="btn3dv" style="text-align:center">✨ 3D景深</button>
+    </div>
+    <button class="btn" id="capturedBackBtn" onclick="var l=document.getElementById('capturedLabel').textContent;if(l==='探索')backFromStrangerDetail();else if(l==='日记回顾'||l==='已被移除')backToGallery();else afterCaptureBack()" style="text-align:center;background:transparent;color:var(--muted);margin-top:20px">← 返回</button>
+  </div>
+
+  <!-- Collage Screen (overlay) -->
+  <div id="collage" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:var(--bg);z-index:500;overflow-y:auto;padding:calc(60px + env(safe-area-inset-top, 0px)) 24px calc(100px + env(safe-area-inset-bottom, 0px))">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><span style="font-size:13px;color:#888">月度碎片</span><button onclick="backFromCollage()" style="background:none;border:none;color:var(--accent);font-size:15px;cursor:pointer">✕</button></div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:16px">
+      <button class="btn" id="collagePrev" onclick="collagePrevMonth()" style="width:40px;padding:12px;text-align:center;font-size:18px">‹</button>
+      <div id="collageMonth" style="color:var(--text);font-size:20px;font-weight:600;letter-spacing:-.3px;min-width:140px;text-align:center"></div>
+      <button class="btn" id="collageNext" onclick="collageNextMonth()" style="width:40px;padding:12px;text-align:center;font-size:18px">›</button>
+    </div>
+    <div id="collageCount" style="color:var(--muted);font-size:13px;margin-bottom:14px;text-align:center"></div>
+    <button class="btn depth-btn" onclick="generateCollage()" style="text-align:center">📸 生成拼贴</button>
+    <div id="collageLoading" style="display:none;color:var(--muted);font-size:14px;text-align:center;padding:40px">生成中...</div>
+    <div id="collagePreview" style="margin-top:14px;display:none">
+      <img id="collageImg" src="" style="width:100%;border-radius:14px;background:var(--card)" alt="">
+    </div>
+    <div id="collageActions" style="display:none;margin-top:14px">
+      <button class="btn" onclick="downloadCollage()" style="text-align:center">💾 保存到相册</button>
+      <button class="btn" onclick="shareCollage()" style="text-align:center">📤 分享</button>
+    </div>
+  </div>
+
+  <!-- Time Fragment Screen -->
+  <div id="timeFragment" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:var(--bg);z-index:500;overflow-y:auto;padding:calc(60px + env(safe-area-inset-top, 0px)) 24px calc(100px + env(safe-area-inset-bottom, 0px))">
+    <div style="font-size:20px;font-weight:700;letter-spacing:-.3px;margin-bottom:16px">✨ 时光碎片</div>
+    <!-- Template selector -->
+    <div style="margin-bottom:18px">
+      <div style="color:var(--muted);font-size:12px;margin-bottom:8px;letter-spacing:1px">选择模板</div>
+      <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:2px" id="tfTemplates">
+        <div class="tf-tpl active" onclick="selectTF(0)" id="tf-tpl-0" style="flex-shrink:0;text-align:center;padding:10px 14px;border-radius:12px;background:var(--card);border:2px solid var(--accent);cursor:pointer;font-size:12px;min-width:72px">🔲<br>经典网格</div>
+        <div class="tf-tpl" onclick="selectTF(1)" id="tf-tpl-1" style="flex-shrink:0;text-align:center;padding:10px 14px;border-radius:12px;background:var(--card);border:2px solid transparent;cursor:pointer;font-size:12px;min-width:72px">📸<br>拍立得</div>
+        <div class="tf-tpl" onclick="selectTF(2)" id="tf-tpl-2" style="flex-shrink:0;text-align:center;padding:10px 14px;border-radius:12px;background:var(--card);border:2px solid transparent;cursor:pointer;font-size:12px;min-width:72px">📰<br>杂志排版</div>
+        <div class="tf-tpl" onclick="selectTF(3)" id="tf-tpl-3" style="flex-shrink:0;text-align:center;padding:10px 14px;border-radius:12px;background:var(--card);border:2px solid transparent;cursor:pointer;font-size:12px;min-width:72px">📅<br>日历日记</div>
+        <div class="tf-tpl" onclick="selectTF(4)" id="tf-tpl-4" style="flex-shrink:0;text-align:center;padding:10px 14px;border-radius:12px;background:var(--card);border:2px solid transparent;cursor:pointer;font-size:12px;min-width:72px">🎬<br>电影胶片</div>
+      </div>
+    </div>
+    <!-- Quick presets -->
+    <div style="margin-bottom:24px">
+      <div style="color:var(--muted);font-size:12px;margin-bottom:10px;letter-spacing:1px">选择天数</div>
+      <div style="display:flex;gap:8px" id="tfDayBtns">
+        <button class="btn" onclick="setTFDays(7,this)" style="flex:1;text-align:center;padding:14px">最近7天</button>
+        <button class="btn" onclick="setTFDays(30,this)" style="flex:1;text-align:center;padding:14px">最近30天</button>
+        <button class="btn" onclick="setTFDays(90,this)" style="flex:1;text-align:center;padding:14px">最近90天</button>
+      </div>
+    </div>
+    <!-- Custom date range -->
+    <div style="margin-bottom:24px">
+      <div style="color:var(--muted);font-size:12px;margin-bottom:10px;letter-spacing:1px">或自定义日期</div>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
+        <input type="date" id="tfStart" style="flex:1;padding:12px;border:none;border-radius:12px;background:var(--card);color:var(--text);font-size:14px;outline:none" onchange="onTFCustomDate()">
+        <span style="color:var(--muted)">至</span>
+        <input type="date" id="tfEnd" style="flex:1;padding:12px;border:none;border-radius:12px;background:var(--card);color:var(--text);font-size:14px;outline:none" onchange="onTFCustomDate()">
+      </div>
+    </div>
+    <!-- Generate button -->
+    <button class="btn" onclick="genTFNow()" style="text-align:center;background:var(--accent);color:#fff;font-size:17px;padding:16px">✨ 生成时光碎片</button>
+    <!-- Loading -->
+    <div id="tfLoading" style="display:none;text-align:center;padding:40px;color:var(--muted);font-size:14px">✨ 正在生成时光碎片...</div>
+    <div onclick="closeTimeFragment()" style="text-align:center;color:var(--muted);font-size:15px;margin-top:16px;cursor:pointer">← 返回</div>
+  </div>
+
+  <!-- Time Fragment Result Overlay (fullscreen, slides up) -->
+  <div id="tfResultOverlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.95);z-index:6000;flex-direction:column;align-items:center;justify-content:center;padding:20px;transform:translateY(100%);transition:transform .35s ease">
+    <button onclick="closeTFResult()" style="position:absolute;top:calc(16px + env(safe-area-inset-top, 0px));right:16px;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.15);color:#fff;border:none;font-size:18px;cursor:pointer;z-index:10">✕</button>
+    <img id="tfImg" src="" style="max-width:100%;max-height:70vh;border-radius:12px;background:var(--card);object-fit:contain;box-shadow:0 8px 40px rgba(0,0,0,.5)">
+    <div style="display:flex;gap:12px;margin-top:24px;width:100%;max-width:320px">
+      <button class="btn" onclick="saveTF()" style="flex:1;text-align:center;background:var(--accent);color:#fff">💾 保存</button>
+      <button class="btn" onclick="shareTF()" style="flex:1;text-align:center">📤 分享</button>
+    </div>
+  </div>
+
+  <!-- Legal Pages Overlay -->
+  <div id="legalOverlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:var(--bg);z-index:500;overflow-y:auto;padding:calc(60px + env(safe-area-inset-top, 0px)) 24px calc(100px + env(safe-area-inset-bottom, 0px))">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+      <span id="legalTitle" style="font-size:20px;font-weight:700;letter-spacing:-.3px"></span>
+      <span style="font-size:22px;cursor:pointer;color:var(--muted)" onclick="closeLegalPage()">✕</span>
+    </div>
+    <div id="legalContent" style="color:var(--text);font-size:15px;line-height:1.8;letter-spacing:-.1px"></div>
+  </div>
+
+  <!-- Bottom Nav -->
+  <nav class="bottom-nav" style="display:flex;justify-content:space-around;padding:6px 0 calc(18px + env(safe-area-inset-bottom, 0px));background:var(--nav-bg);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:1px solid var(--nav-border)">
+    <div class="nav-item" id="nav-photos" onclick="navTo('photos')">
+      <span class="nav-icon">📁</span><span class="nav-label">日记</span>
+    </div>
+    <div class="nav-item active" id="nav-home" onclick="navTo('home')">
+      <span class="nav-icon">📷</span><span class="nav-label">此刻</span>
+    </div>
+    <div class="nav-item" id="nav-strangers" onclick="navTo('strangers')">
+      <span class="nav-icon">🌍</span><span class="nav-label">探索</span>
+    </div>
+  </nav>
+</div>
+
+<script src="starry-world.js"></script>
+
+<script src="js/app.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/settings.js"></script>
+<script src="js/capture.js"></script>
+<script src="js/gallery.js"></script>
+<script src="js/explore.js"></script>
+<script src="js/collage.js"></script>
+<script src="js/init.js"></script>
+
+<script>
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('/sw.js').catch(function(){})
+}
+</script>
+</body>
+</html>
