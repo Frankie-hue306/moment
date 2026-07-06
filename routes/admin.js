@@ -6,12 +6,18 @@ const router = express.Router();
 const { db, imgUrl } = require('../db');
 const auth = require('../middleware/auth');
 
+// Admin user ID — override via env var. Default: user 1 (first registered user)
+const ADMIN_USER_ID = parseInt(process.env.MOMENT_ADMIN_USER_ID) || 1;
+
 // Admin confirmation token — override via env var in production
 const ADMIN_CLEAR_TOKEN = process.env.MOMENT_ADMIN_CLEAR_TOKEN || 'CONFIRM_CLEAR_ALL_DATA';
 
+// Helper: check if the authenticated user is an admin
+function isAdmin(user) { return user.id === ADMIN_USER_ID; }
+
 // ======================== Admin (SECURE) ========================
 router.post('/api/admin/clear', auth, (r, s) => {
-  if (r.user.id !== 1) return s.status(403).json({ error: '无权限' });
+  if (!isAdmin(r.user)) return s.status(403).json({ error: '无权限' });
 
   const confirmToken = r.body.confirm_token;
   if (!confirmToken || confirmToken !== ADMIN_CLEAR_TOKEN) {
@@ -35,7 +41,7 @@ router.post('/api/admin/clear', auth, (r, s) => {
 
 // List reported/pending moments for review
 router.get('/api/admin/moments', auth, (r, s) => {
-  if (r.user.id !== 1) return s.status(403).json({ error: '无权限' });
+  if (!isAdmin(r.user)) return s.status(403).json({ error: '无权限' });
 
   const page = parseInt(r.query.page) || 1;
   const limit = Math.min(parseInt(r.query.limit) || 20, 50);
@@ -84,7 +90,7 @@ router.get('/api/admin/moments', auth, (r, s) => {
 
 // Approve a moment (clear reports, set status to approved)
 router.post('/api/admin/moments/:id/approve', auth, (r, s) => {
-  if (r.user.id !== 1) return s.status(403).json({ error: '无权限' });
+  if (!isAdmin(r.user)) return s.status(403).json({ error: '无权限' });
 
   const mid = parseInt(r.params.id);
   const m = db.prepare('SELECT * FROM moments WHERE id = ?').get(mid);
@@ -97,7 +103,7 @@ router.post('/api/admin/moments/:id/approve', auth, (r, s) => {
 
 // Reject a moment (set status to rejected, clear reports)
 router.post('/api/admin/moments/:id/reject', auth, (r, s) => {
-  if (r.user.id !== 1) return s.status(403).json({ error: '无权限' });
+  if (!isAdmin(r.user)) return s.status(403).json({ error: '无权限' });
 
   const mid = parseInt(r.params.id);
   const m = db.prepare('SELECT * FROM moments WHERE id = ?').get(mid);

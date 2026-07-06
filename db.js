@@ -91,7 +91,7 @@ db.exec(`
 `);
 
 // ======================== Helpers ========================
-function uid() { return crypto.randomBytes(6).toString('hex'); }
+function uid() { return crypto.randomBytes(16).toString('hex'); }
 function mask(p) { return p ? p.slice(0, 3) + '****' + p.slice(-3) : '未知'; }
 function imgUrl(p) {
   if (!p) return '';
@@ -148,6 +148,15 @@ function saveImage(dataUrl) {
 
 // ======================== SMS (Dev Mode) ========================
 const SMS_CODES = {};
+
+// Periodic cleanup of expired SMS codes
+setInterval(() => {
+  const now = Date.now();
+  for (const ph of Object.keys(SMS_CODES)) {
+    if (SMS_CODES[ph].expiresAt < now) delete SMS_CODES[ph];
+  }
+}, 5 * 60 * 1000);
+
 function genSMSCode(phone) {
   const now = Date.now();
   for (const ph of Object.keys(SMS_CODES)) {

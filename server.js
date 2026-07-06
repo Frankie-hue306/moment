@@ -80,7 +80,7 @@ app.use((err, req, res, next) => {
 
 // -------------------- 启动 --------------------
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log('Moment Server (SQLite) on port ' + PORT);
   console.log('Data directory: ' + DATA_DIR);
   console.log('Production mode: ' + (isProduction ? 'yes' : 'no'));
@@ -96,3 +96,25 @@ app.listen(PORT, () => {
     }
   }
 });
+
+// -------------------- Graceful Shutdown --------------------
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown);
+
+function shutdown(signal) {
+  console.log(`\n[${signal}] Shutting down gracefully...`);
+  server.close(() => {
+    console.log('HTTP server closed.');
+    try {
+      const { db } = require('./db');
+      db.pragma('wal_checkpoint(TRUNCATE)');
+      db.close();
+      console.log('Database checkpointed and closed.');
+    } catch (e) {
+      console.error('Error during DB shutdown:', e.message);
+    }
+    process.exit(0);
+  });
+  // Force exit after 10s if graceful shutdown hangs
+  setTimeout(() => { process.exit(1); }, 10000);
+}
