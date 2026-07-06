@@ -5,10 +5,11 @@ const rateLimitMap = {};
 const RATE_LIMIT_WINDOW = 60 * 1000;
 const RATE_LIMIT_MAX = 60;
 
-// Periodic cleanup: clear stale entries every 10 minutes
+// Periodic cleanup: only clear expired entries
 setInterval(() => {
+  const now = Date.now();
   for (const ip of Object.keys(rateLimitMap)) {
-    delete rateLimitMap[ip];
+    if (rateLimitMap[ip].resetAt < now) delete rateLimitMap[ip];
   }
 }, 10 * 60 * 1000);
 

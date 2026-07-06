@@ -9,11 +9,14 @@ const { db, SMS_CODES, genSMSCode, uid, imgUrl } = require('../db');
 const smsRateMap = {}; // key: timestamp of last request
 const SMS_COOLDOWN_MS = 60 * 1000;
 
-// Periodic cleanup of expired SMS rate entries
+// Periodic cleanup of expired SMS rate entries (supports both simple timestamps and counter objects)
 setInterval(() => {
   const now = Date.now();
   for (const k of Object.keys(smsRateMap)) {
-    if (smsRateMap[k] < now - SMS_COOLDOWN_MS) delete smsRateMap[k];
+    const entry = smsRateMap[k];
+    if (typeof entry === 'object' ? entry.resetAt < now : entry < now - SMS_COOLDOWN_MS * 2) {
+      delete smsRateMap[k];
+    }
   }
 }, 5 * 60 * 1000);
 
@@ -31,12 +34,19 @@ router.post('/api/sms/send', (r, s) => {
   // Per-IP rate check (max 3 SMS requests per minute per IP)
   const ip = r.ip || r.connection.remoteAddress || 'unknown';
   const ipKey = 'ip:' + ip;
-  if (smsRateMap[ipKey] && (now - smsRateMap[ipKey]) < SMS_COOLDOWN_MS / 3) {
-    return s.status(429).json({ error: '请求过于频繁，请稍后再试' });
+  const ipEntry = smsRateMap[ipKey];
+  if (!ipEntry) {
+    smsRateMap[ipKey] = { count: 1, resetAt: now + 60 * 1000 };
+  } else if (now > ipEntry.resetAt) {
+    smsRateMap[ipKey] = { count: 1, resetAt: now + 60 * 1000 };
+  } else {
+    ipEntry.count++;
+    if (ipEntry.count > 3) {
+      return s.status(429).json({ error: '请求过于频繁，请稍后再试' });
+    }
   }
 
   smsRateMap[phoneKey] = now;
-  smsRateMap[ipKey] = now;
 
   genSMSCode(ph);
   s.json({ message: '验证码已发送（开发模式：查看服务器日志）' });
