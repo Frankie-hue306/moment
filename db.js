@@ -32,9 +32,6 @@ const db = new Database(path.join(DATA_DIR, 'moment.db'));
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
 
-// Additional performance index on created_at (not in original schema)
-db.exec(`CREATE INDEX IF NOT EXISTS idx_moments_created_at ON moments(created_at DESC)`);
-
 // Create tables
 db.exec(`
   CREATE TABLE IF NOT EXISTS users (
@@ -47,7 +44,7 @@ db.exec(`
     consecutive_days INTEGER DEFAULT 0,
     last_upload_date TEXT DEFAULT '',
     preferences TEXT DEFAULT '{}',
-    created_at TEXT DEFAULT (datetime('now'))
+    created_at TEXT DEFAULT ''
   );
 
   CREATE TABLE IF NOT EXISTS moments (
@@ -59,7 +56,7 @@ db.exec(`
     status TEXT DEFAULT 'approved',
     rejected_message TEXT DEFAULT '',
     like_count INTEGER DEFAULT 0,
-    created_at TEXT DEFAULT (datetime('now')),
+    created_at TEXT DEFAULT '',
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
   );
 
@@ -67,7 +64,7 @@ db.exec(`
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
     moment_id INTEGER NOT NULL,
-    created_at TEXT DEFAULT (datetime('now')),
+    created_at TEXT DEFAULT '',
     UNIQUE(user_id, moment_id),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (moment_id) REFERENCES moments(id) ON DELETE CASCADE
@@ -78,7 +75,7 @@ db.exec(`
     moment_id INTEGER NOT NULL,
     user_id INTEGER NOT NULL,
     reason TEXT DEFAULT '其他',
-    created_at TEXT DEFAULT (datetime('now')),
+    created_at TEXT DEFAULT '',
     UNIQUE(moment_id, user_id),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (moment_id) REFERENCES moments(id) ON DELETE CASCADE
@@ -93,6 +90,9 @@ db.exec(`
 // Migration: add password_hash column (ignore if already exists)
 try { db.exec(`ALTER TABLE users ADD COLUMN password_hash TEXT DEFAULT ''`); } catch (e) {}
 try { db.exec(`ALTER TABLE users ADD COLUMN registered_at TEXT DEFAULT ''`); } catch (e) {}
+
+// Additional performance index (after tables exist)
+try { db.exec(`CREATE INDEX IF NOT EXISTS idx_moments_created_at ON moments(created_at DESC)`); } catch (e) {}
 
 // ======================== Helpers ========================
 function uid() { return crypto.randomBytes(16).toString('hex'); }
