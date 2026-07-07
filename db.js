@@ -90,8 +90,26 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_reports_moment_id ON reports(moment_id);
 `);
 
+// Migration: add password_hash column (ignore if already exists)
+try { db.exec(`ALTER TABLE users ADD COLUMN password_hash TEXT DEFAULT ''`); } catch (e) {}
+try { db.exec(`ALTER TABLE users ADD COLUMN registered_at TEXT DEFAULT ''`); } catch (e) {}
+
 // ======================== Helpers ========================
 function uid() { return crypto.randomBytes(16).toString('hex'); }
+
+// Password hashing (PBKDF2, OWASP recommendation)
+function hashPassword(password) {
+  const salt = crypto.randomBytes(16).toString('hex');
+  const hash = crypto.pbkdf2Sync(password, salt, 100000, 64, 'sha512').toString('hex');
+  return `${salt}:${hash}`;
+}
+function verifyPassword(password, stored) {
+  try {
+    const [salt, hash] = stored.split(':');
+    return crypto.pbkdf2Sync(password, salt, 100000, 64, 'sha512').toString('hex') === hash;
+  } catch (e) { return false; }
+}
+
 function mask(p) { return p ? p.slice(0, 3) + '****' + p.slice(-3) : '未知'; }
 function imgUrl(p) {
   if (!p) return '';
@@ -223,4 +241,4 @@ function backupDB() {
 
 scheduleTruncateCheckpoint();
 
-module.exports = { db, uid, mask, imgUrl, saveImage, thumbPath, TOKEN_TTL_MS, genSMSCode, UPLOADS_DIR, SMS_CODES };
+module.exports = { db, uid, mask, imgUrl, saveImage, thumbPath, TOKEN_TTL_MS, genSMSCode, UPLOADS_DIR, SMS_CODES, hashPassword, verifyPassword };

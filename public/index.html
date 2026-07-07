@@ -227,11 +227,8 @@ html.dawn-sky .nav-item.active .nav-label{color:#fff !important;font-weight:700}
   <h1 style="color:var(--text);font-size:32px;font-weight:700;margin-bottom:12px;letter-spacing:-.5px">此刻</h1>
   <div style="color:var(--muted);font-size:16px;line-height:1.6;text-align:center;max-width:260px;margin-bottom:40px;letter-spacing:-.2px">每天一次，随机时刻<br>拍下你面前真实的生活<br>反社交媒体档案</div>
   <input id="loginPhone" type="tel" maxlength="11" placeholder="输入手机号" style="width:280px;padding:16px;border:none;border-radius:14px;background:var(--card);color:var(--text);font-size:20px;text-align:center;outline:none;letter-spacing:4px;margin-bottom:12px">
-  <div style="display:flex;gap:8px;width:280px;margin-bottom:12px">
-    <input id="loginCode" type="tel" maxlength="6" placeholder="验证码" style="width:160px;padding:14px 8px;border:none;border-radius:14px;background:var(--card);color:var(--text);font-size:18px;text-align:center;outline:none;letter-spacing:4px">
-    <button id="smsBtn" onclick="sendSMS()" style="flex-shrink:0;padding:14px 12px;border:none;border-radius:14px;background:var(--card);color:var(--accent);font-size:13px;cursor:pointer;white-space:nowrap">获取验证码</button>
-  </div>
-  <button class="btn" id="loginBtn" onclick="doLogin()" style="width:280px;text-align:center;background:var(--accent);color:#fff;font-size:17px">注册</button>
+  <input id="loginPassword" type="password" maxlength="30" placeholder="设置密码（至少6位）" style="width:280px;padding:16px;border:none;border-radius:14px;background:var(--card);color:var(--text);font-size:18px;text-align:center;outline:none;margin-bottom:12px">
+  <button class="btn" id="loginBtn" onclick="doLogin()" style="width:280px;text-align:center;background:var(--accent);color:#fff;font-size:17px">注册 / 登录</button>
   <button class="btn" onclick="skipLogin()" style="width:280px;text-align:center;background:transparent;color:var(--muted);font-size:15px;margin-top:8px">跳过，先体验</button>
   <div id="loginMsg" style="color:#ff6b6b;font-size:13px;margin-top:16px"></div>
 </div>

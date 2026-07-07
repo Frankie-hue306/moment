@@ -1,93 +1,30 @@
 /**
- * 此刻 Moment - 认证路由 (SMS + 登录)
+ * 此刻 Moment - 认证路由 (手机号 + 密码)
  */
 const express = require('express');
 const router = express.Router();
-const { db, SMS_CODES, genSMSCode, uid, imgUrl } = require('../db');
+const { db, uid, imgUrl, hashPassword, verifyPassword } = require('../db');
 
-// SMS frequency limiting: per-phone and per-IP, 1 request per 60s
-const smsRateMap = {}; // key: timestamp of last request
-const SMS_COOLDOWN_MS = 60 * 1000;
-
-// Periodic cleanup of expired SMS rate entries (supports both simple timestamps and counter objects)
-setInterval(() => {
-  const now = Date.now();
-  for (const k of Object.keys(smsRateMap)) {
-    const entry = smsRateMap[k];
-    if (typeof entry === 'object' ? entry.resetAt < now : entry < now - SMS_COOLDOWN_MS * 2) {
-      delete smsRateMap[k];
-    }
-  }
-}, 5 * 60 * 1000);
-
-router.post('/api/sms/send', (r, s) => {
+// ======================== Register ========================
+router.post('/api/auth/register', (r, s) => {
   const ph = r.body.phone;
+  const pw = r.body.password;
   if (!ph || !/^\d{11}$/.test(ph)) return s.status(400).json({ error: '手机号格式不对' });
+  if (!pw || pw.length < 6) return s.status(400).json({ error: '密码至少6位' });
 
-  // Per-number rate check
-  const now = Date.now();
-  const phoneKey = 'ph:' + ph;
-  if (smsRateMap[phoneKey] && (now - smsRateMap[phoneKey]) < SMS_COOLDOWN_MS) {
-    return s.status(429).json({ error: '验证码请求过于频繁，请稍后再试' });
-  }
+  const existing = db.prepare('SELECT id FROM users WHERE phone = ?').get(ph);
+  if (existing) return s.status(409).json({ error: '手机号已注册，请直接登录' });
 
-  // Per-IP rate check (max 3 SMS requests per minute per IP)
-  const ip = r.ip || r.connection.remoteAddress || 'unknown';
-  const ipKey = 'ip:' + ip;
-  const ipEntry = smsRateMap[ipKey];
-  if (!ipEntry) {
-    smsRateMap[ipKey] = { count: 1, resetAt: now + 60 * 1000 };
-  } else if (now > ipEntry.resetAt) {
-    smsRateMap[ipKey] = { count: 1, resetAt: now + 60 * 1000 };
-  } else {
-    ipEntry.count++;
-    if (ipEntry.count > 3) {
-      return s.status(429).json({ error: '请求过于频繁，请稍后再试' });
-    }
-  }
-
-  smsRateMap[phoneKey] = now;
-
-  genSMSCode(ph);
-  s.json({ message: '验证码已发送（开发模式：查看服务器日志）' });
-});
-
-// ======================== Login ========================
-router.post('/api/login', (r, s) => {
-  const ph = r.body.phone;
-  const code = r.body.code;
-  if (!ph || !/^\d{11}$/.test(ph)) return s.status(400).json({ error: '手机号格式不对' });
-  if (!code) return s.status(400).json({ error: '请输入验证码' });
-
-  const cached = SMS_CODES[ph];
-  // SECURITY: Dev login is FORCE-DISABLED in production regardless of env var
-  const isProduction = (process.env.NODE_ENV === 'production');
-  const isDev = !isProduction && (process.env.MOMENT_DEV_LOGIN === '1');
-  if (isDev && code.length === 6 && code !== '000000') {
-    // Dev mode: accept any 6-digit code except '000000'
-    // SMS_CODES entry is not required; proceed directly
-  } else {
-    if (!cached) return s.status(400).json({ error: '请先获取验证码' });
-    if (Date.now() > cached.expiresAt) return s.status(400).json({ error: '验证码已过期，请重新获取' });
-    if (cached.code !== code) return s.status(400).json({ error: '验证码错误' });
-  }
-  delete SMS_CODES[ph];
-
-  let u = db.prepare('SELECT id, phone, nickname, avatar FROM users WHERE phone = ?').get(ph);
+  const passwordHash = hashPassword(pw);
   const token = 'tok_' + uid();
   const now = Date.now();
+  const dateStr = new Date().toISOString().slice(0, 10);
 
-  if (!u) {
-    const info = db.prepare(
-      'INSERT INTO users (phone, token, token_created_at, preferences) VALUES (?, ?, ?, ?)'
-    ).run(ph, token, now, JSON.stringify({ daily_pick_enabled: true }));
-    u = db.prepare('SELECT id, phone, nickname, avatar, token, token_created_at, preferences FROM users WHERE id = ?').get(info.lastInsertRowid);
-  } else {
-    db.prepare('UPDATE users SET token = ?, token_created_at = ? WHERE id = ?')
-      .run(token, now, u.id);
-    u.token = token;
-    u.token_created_at = now;
-  }
+  const info = db.prepare(
+    'INSERT INTO users (phone, password_hash, token, token_created_at, registered_at) VALUES (?, ?, ?, ?, ?)'
+  ).run(ph, passwordHash, token, now, dateStr);
+
+  const u = db.prepare('SELECT id, phone, nickname, avatar, token, token_created_at, preferences FROM users WHERE id = ?').get(info.lastInsertRowid);
 
   let prefs = {};
   try { prefs = JSON.parse(u.preferences || '{}'); } catch (e) {}
@@ -95,6 +32,43 @@ router.post('/api/login', (r, s) => {
   s.json({
     token: u.token,
     tokenCreatedAt: u.token_created_at,
+    userId: u.id,
+    nickname: u.nickname || '',
+    avatar: imgUrl(u.avatar),
+    preferences: prefs,
+    isNewUser: true
+  });
+});
+
+// ======================== Login ========================
+router.post('/api/auth/login', (r, s) => {
+  const ph = r.body.phone;
+  const pw = r.body.password;
+  if (!ph || !/^\d{11}$/.test(ph)) return s.status(400).json({ error: '手机号格式不对' });
+  if (!pw) return s.status(400).json({ error: '请输入密码' });
+
+  const u = db.prepare('SELECT id, phone, password_hash, nickname, avatar, preferences FROM users WHERE phone = ?').get(ph);
+  if (!u) return s.status(401).json({ error: '手机号未注册' });
+
+  // Legacy users: no password set (old SMS-only accounts)
+  if (!u.password_hash) {
+    return s.status(401).json({ error: '您的账号尚未设置密码，请联系客服' });
+  }
+
+  if (!verifyPassword(pw, u.password_hash)) {
+    return s.status(401).json({ error: '密码错误' });
+  }
+
+  const token = 'tok_' + uid();
+  const now = Date.now();
+  db.prepare('UPDATE users SET token = ?, token_created_at = ? WHERE id = ?').run(token, now, u.id);
+
+  let prefs = {};
+  try { prefs = JSON.parse(u.preferences || '{}'); } catch (e) {}
+
+  s.json({
+    token: token,
+    tokenCreatedAt: now,
     userId: u.id,
     nickname: u.nickname || '',
     avatar: imgUrl(u.avatar),
