@@ -203,12 +203,11 @@ function scheduleTruncateCheckpoint() {
 
 function backupDB() {
   const dateStr = new Date().toISOString().slice(0, 10);
-  const src = path.join(DATA_DIR, 'moment.db');
   const dest = path.join(BACKUP_DIR, 'moment-' + dateStr + '.db');
 
-  if (!fs.existsSync(src)) return;
   try {
-    fs.copyFileSync(src, dest);
+    // Use SQLite backup API for consistent WAL-mode backups
+    db.backup(dest);
     console.log('[BACKUP] Database backed up to', dest);
 
     // Clean old backups (keep last BACKUP_KEEP_DAYS)

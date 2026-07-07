@@ -137,6 +137,7 @@ router.post('/api/like', auth, (r, s) => {
 
   const m = db.prepare('SELECT id, image_path, user_id, like_count FROM moments WHERE id = ?').get(mid);
   if (!m) return s.status(404).json({ error: '不存在' });
+  if (m.user_id === r.user.id) return s.status(400).json({ error: '不能给自己点赞' });
 
   const existing = db.prepare('SELECT id FROM likes WHERE user_id = ? AND moment_id = ?').get(r.user.id, mid);
   if (existing) {

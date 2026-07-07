@@ -30,7 +30,6 @@ app.use(cors({
     // Capacitor / Cordova hybrid apps (use custom scheme origins)
     if (/^(capacitor|ionic|https):\/\/localhost(:\d+)?$/.test(origin)) return cb(null, true);
     if (!isProduction && /^https?:\/\/localhost(:\d+)?$/.test(origin)) return cb(null, true);
-    if (origin === 'https://cikemoment.cn') return cb(null, true);
     cb(new Error('CORS blocked: ' + origin));
   },
   credentials: true,

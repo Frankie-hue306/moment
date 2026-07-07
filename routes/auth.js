@@ -64,7 +64,8 @@ router.post('/api/login', (r, s) => {
   const isProduction = (process.env.NODE_ENV === 'production');
   const isDev = !isProduction && (process.env.MOMENT_DEV_LOGIN === '1');
   if (isDev && code.length === 6 && code !== '000000') {
-    if (!cached) { genSMSCode(ph); }
+    // Dev mode: accept any 6-digit code except '000000'
+    // SMS_CODES entry is not required; proceed directly
   } else {
     if (!cached) return s.status(400).json({ error: '请先获取验证码' });
     if (Date.now() > cached.expiresAt) return s.status(400).json({ error: '验证码已过期，请重新获取' });

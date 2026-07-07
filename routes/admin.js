@@ -13,6 +13,9 @@ const ADMIN_USER_ID = parseInt(process.env.MOMENT_ADMIN_USER_ID) || 1;
 
 // Admin confirmation token — override via env var in production
 const ADMIN_CLEAR_TOKEN = process.env.MOMENT_ADMIN_CLEAR_TOKEN || 'CONFIRM_CLEAR_ALL_DATA';
+if (!process.env.MOMENT_ADMIN_CLEAR_TOKEN) {
+  console.warn('[SECURITY] MOMENT_ADMIN_CLEAR_TOKEN not set! Using default value. Set it in production!');
+}
 
 // Helper: check if the authenticated user is an admin
 function isAdmin(user) { return user.id === ADMIN_USER_ID; }
