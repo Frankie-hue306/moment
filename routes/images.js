@@ -38,7 +38,7 @@ router.get('/api/image/uploads/:name', (r, s) => {
     // If not public, check auth
     if (prefs.photo_public === false || moment.status !== 'approved') {
       const tok = r.headers['x-auth-token'] || '';
-      const u = db.prepare('SELECT * FROM users WHERE token = ?').get(tok);
+      const u = db.prepare('SELECT id, token FROM users WHERE token = ?').get(tok);
       if (!u || u.id !== moment.user_id) {
         return s.status(404).end();
       }
@@ -47,7 +47,7 @@ router.get('/api/image/uploads/:name', (r, s) => {
   // If moment not found in DB (legacy data), require auth
   else {
     const tok = r.headers['x-auth-token'] || '';
-    const u = db.prepare('SELECT * FROM users WHERE token = ?').get(tok);
+    const u = db.prepare('SELECT id FROM users WHERE token = ?').get(tok);
     if (!u) return s.status(404).end();
   }
 
@@ -59,7 +59,7 @@ router.get('/api/image/uploads/:name', (r, s) => {
 
 // Legacy fallback
 router.get('/api/image/:id', (r, s) => {
-  const m = db.prepare('SELECT * FROM moments WHERE id = ?').get(parseInt(r.params.id));
+  const m = db.prepare('SELECT id, image_path, data_url, status, user_id FROM moments WHERE id = ?').get(parseInt(r.params.id));
   if (!m) return s.status(404).end();
 
   const user = db.prepare('SELECT preferences FROM users WHERE id = ?').get(m.user_id);
@@ -67,7 +67,7 @@ router.get('/api/image/:id', (r, s) => {
   try { prefs = JSON.parse(user?.preferences || '{}'); } catch (e) {}
   if (prefs.photo_public === false || m.status !== 'approved') {
     const tok = r.headers['x-auth-token'] || '';
-    const u = db.prepare('SELECT * FROM users WHERE token = ?').get(tok);
+    const u = db.prepare('SELECT id FROM users WHERE token = ?').get(tok);
     if (!u || u.id !== m.user_id) return s.status(404).end();
   }
 

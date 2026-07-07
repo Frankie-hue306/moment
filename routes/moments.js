@@ -135,7 +135,7 @@ router.post('/api/like', auth, (r, s) => {
   const mid = parseInt(r.body.momentId);
   if (!mid || isNaN(mid)) return s.status(400).json({ error: '缺少momentId' });
 
-  const m = db.prepare('SELECT * FROM moments WHERE id = ?').get(mid);
+  const m = db.prepare('SELECT id, image_path, user_id, like_count FROM moments WHERE id = ?').get(mid);
   if (!m) return s.status(404).json({ error: '不存在' });
 
   const existing = db.prepare('SELECT id FROM likes WHERE user_id = ? AND moment_id = ?').get(r.user.id, mid);
@@ -180,7 +180,7 @@ router.post('/api/report', auth, (r, s) => {
 // ======================== Delete Moment ========================
 router.delete('/api/moment/:id', auth, (r, s) => {
   const mid = parseInt(r.params.id);
-  const m = db.prepare('SELECT * FROM moments WHERE id = ? AND user_id = ?').get(mid, r.user.id);
+  const m = db.prepare('SELECT id, image_path, user_id FROM moments WHERE id = ? AND user_id = ?').get(mid, r.user.id);
   if (!m) return s.status(404).json({ error: '不存在' });
 
   if (m.image_path && m.image_path.startsWith('/uploads/')) {

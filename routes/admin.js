@@ -3,7 +3,9 @@
  */
 const express = require('express');
 const router = express.Router();
-const { db, imgUrl } = require('../db');
+const fs = require('fs');
+const path = require('path');
+const { db, imgUrl, UPLOADS_DIR } = require('../db');
 const auth = require('../middleware/auth');
 
 // Admin user ID — override via env var. Default: user 1 (first registered user)
@@ -26,6 +28,18 @@ router.post('/api/admin/clear', auth, (r, s) => {
 
   db.exec('BEGIN TRANSACTION');
   try {
+    // Delete all image files from disk before clearing DB
+    const moments = db.prepare('SELECT image_path FROM moments').all();
+    for (const m of moments) {
+      if (m.image_path && m.image_path.startsWith('/uploads/')) {
+        try { fs.unlinkSync(path.join(UPLOADS_DIR, path.basename(m.image_path))); } catch (e) {}
+        // Also delete thumbnail
+        const base = path.basename(m.image_path);
+        const thumbName = 'thumb_' + base.replace(/\.[^.]+$/, '.jpg');
+        const thumbPath = path.join(UPLOADS_DIR, thumbName);
+        try { if (fs.existsSync(thumbPath)) fs.unlinkSync(thumbPath); } catch (e) {}
+      }
+    }
     db.prepare('DELETE FROM reports').run();
     db.prepare('DELETE FROM likes').run();
     db.prepare('DELETE FROM moments').run();
@@ -93,7 +107,7 @@ router.post('/api/admin/moments/:id/approve', auth, (r, s) => {
   if (!isAdmin(r.user)) return s.status(403).json({ error: '无权限' });
 
   const mid = parseInt(r.params.id);
-  const m = db.prepare('SELECT * FROM moments WHERE id = ?').get(mid);
+  const m = db.prepare('SELECT id FROM moments WHERE id = ?').get(mid);
   if (!m) return s.status(404).json({ error: '不存在' });
 
   db.prepare("UPDATE moments SET status = 'approved' WHERE id = ?").run(mid);
@@ -106,7 +120,7 @@ router.post('/api/admin/moments/:id/reject', auth, (r, s) => {
   if (!isAdmin(r.user)) return s.status(403).json({ error: '无权限' });
 
   const mid = parseInt(r.params.id);
-  const m = db.prepare('SELECT * FROM moments WHERE id = ?').get(mid);
+  const m = db.prepare('SELECT id FROM moments WHERE id = ?').get(mid);
   if (!m) return s.status(404).json({ error: '不存在' });
 
   const reason = (r.body.reason || '内容不符合社区规范').slice(0, 200);

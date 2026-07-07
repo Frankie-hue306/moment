@@ -72,7 +72,7 @@ router.post('/api/login', (r, s) => {
   }
   delete SMS_CODES[ph];
 
-  let u = db.prepare('SELECT * FROM users WHERE phone = ?').get(ph);
+  let u = db.prepare('SELECT id, phone, nickname, avatar FROM users WHERE phone = ?').get(ph);
   const token = 'tok_' + uid();
   const now = Date.now();
 
@@ -80,7 +80,7 @@ router.post('/api/login', (r, s) => {
     const info = db.prepare(
       'INSERT INTO users (phone, token, token_created_at, preferences) VALUES (?, ?, ?, ?)'
     ).run(ph, token, now, JSON.stringify({ daily_pick_enabled: true }));
-    u = db.prepare('SELECT * FROM users WHERE id = ?').get(info.lastInsertRowid);
+    u = db.prepare('SELECT id, phone, nickname, avatar, token, token_created_at, preferences FROM users WHERE id = ?').get(info.lastInsertRowid);
   } else {
     db.prepare('UPDATE users SET token = ?, token_created_at = ? WHERE id = ?')
       .run(token, now, u.id);
